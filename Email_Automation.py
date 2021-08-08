@@ -47,7 +47,7 @@ def get_credentials():
             print('Fetching New Tokens...')
             flow = InstalledAppFlow.from_client_secrets_file(
                 CLIENT_SECRET,
-                scopes=['https://www.googleapis.com/auth/gmail.compose']
+                scopes=['https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/documents.readonly']
             )
 
             flow.run_local_server(port=8080, prompt='consent', authorization_prompt_message='')
@@ -59,11 +59,9 @@ def get_credentials():
                 pickle.dump(credentials, f)
     return credentials
 
-def open_doc(doc_id):
+def open_doc(doc_id,credentials):
+    docs_service = build('docs', 'v1', discoveryServiceUrl=DISCOVERY_DOC, credentials=credentials)
     # Gives service account access to doc
-    credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT)
-    docs_service = discovery.build(
-        'docs', 'v1', discoveryServiceUrl=DISCOVERY_DOC, credentials=credentials)
     doc = docs_service.documents().get(documentId=doc_id).execute()
     doc_content = doc.get('body').get('content')
     return doc_content
@@ -86,25 +84,25 @@ def read_doc(content):
     components.append(component)
     return components
 
-def get_var(prospect):
+def get_var(prospect,credentials):
     
     # Compiling callable variables based on pipeline location
     stage = prospect['Stage']
 
     if stage == 0:
-        doc_content = open_doc(DOC_IDS['Email 1'])
+        doc_content = open_doc(DOC_IDS['Email 1'],credentials)
 
     elif stage == 1:
-        doc_content = open_doc(DOC_IDS['Email 2'])
+        doc_content = open_doc(DOC_IDS['Email 2'],credentials)
 
     elif stage == 2:
-        doc_content = open_doc(DOC_IDS['Email 3'])
+        doc_content = open_doc(DOC_IDS['Email 3'],credentials)
 
     elif stage == 3:
-        doc_content = open_doc(DOC_IDS['Email 4'])
+        doc_content = open_doc(DOC_IDS['Email 4'],credentials)
 
     elif stage == 4:
-        doc_content = open_doc(DOC_IDS['Email 5']) 
+        doc_content = open_doc(DOC_IDS['Email 5'],credentials) 
     
     subject = read_doc(doc_content)[0]
     body = read_doc(doc_content)[1]
@@ -114,10 +112,10 @@ def get_var(prospect):
 
     return subject,body
 
-def create_draft(prospect,service):
+def create_draft(prospect,credentials):
 
-    subject = get_var(prospect)[0]
-    body = get_var(prospect)[1]
+    subject = get_var(prospect,credentials)[0]
+    body = get_var(prospect,credentials)[1]
 
     message = MIMEMultipart()
     message['from'] = FROM_ADR
@@ -126,7 +124,9 @@ def create_draft(prospect,service):
     message.attach(MIMEText(body, 'plain'))
     raw_string = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
-    draft = service.users().drafts().create(
+    gmail_service = build('gmail', 'v1', credentials=credentials)
+
+    draft = gmail_service.users().drafts().create(
         userId='me', 
         body= {'message': {'raw':raw_string }}
     ).execute()
@@ -139,11 +139,13 @@ def weekday(datetime):
         datetime += td(days=1)
     return datetime
 
-def send_mail(prospect,service):
-    draft = service.users().drafts().get(
+def send_mail(prospect,credentials):
+    gmail_service = build('gmail', 'v1', credentials=credentials)
+
+    draft = gmail_service.users().drafts().get(
         userId='me',
         id=prospect['Draft ID']).execute()
-    send = service.users().drafts().send(
+    send = gmail_service.users().drafts().send(
         userId='me', 
         body= draft
     ).execute()
@@ -167,7 +169,6 @@ DOC_IDS = {
 if __name__ == '__main__':
     # Creates Google API Services w/ credentials
     credentials = get_credentials()
-    gmail_service = build('gmail', 'v1', credentials=credentials)
 
     # Gets data from google sheets
     gc = pygsheets.authorize(service_account_file=SERVICE_ACCOUNT)
@@ -196,13 +197,13 @@ if __name__ == '__main__':
             
             # Sends email if send time is now
             if str(now) in prospects.loc[i].array:
-                prospects.loc[i,'Stage'] = send_mail(prospects.loc[i],gmail_service)
+                prospects.loc[i,'Send ID 1'] = send_mail(prospects.loc[i],credentials)
                 prospects.loc[i,'Stage'] += 1
                 prospects.loc[i,'Draft ID'] = ''
             
             # Creates draft and sets Draft ID
             if not prospects.loc[i,'Draft ID']:
-                prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],gmail_service)
+                prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
 
     outreach_sheet.set_dataframe(prospects,(1,1))
 
