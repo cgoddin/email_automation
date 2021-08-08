@@ -152,7 +152,6 @@ def send_mail(prospect,service):
 
 CONFIG = config('.config\config.json') 
 FROM_ADR = CONFIG['FromAddress']
-print(FROM_ADR)
 CLIENT_SECRET = CONFIG['ClientSecretFile']
 SERVICE_ACCOUNT = CONFIG['ServiceAccountFile']
 TOKEN = CONFIG['Token']
