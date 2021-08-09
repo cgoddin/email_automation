@@ -175,34 +175,62 @@ if __name__ == '__main__':
     sheet = client.open_by_key(SHEET_ID).get_worksheet(0)
     prospects = pd.DataFrame(sheet.get_all_records())
 
+
     now = dt.now().replace(second=0,microsecond=0)
 
     for i in prospects.index:
         
-        # ERROR: Sets variables for prospect each time **Filter prospects before**
-        if prospects.loc[i,'Stage'] == 5:
-            prospects.loc[i,'End Reason'] = 'Complete'
-            prospects.loc[i,'End Date'] = now.date()
-        
-        else:
+        if prospects.loc[i,'Stage'] == '':
+                prospects.loc[i,'Stage'] = 0
 
-            # Sets the Send Time for prospect
+        if prospects.loc[i,'Stage'] == 5:
+            pass
+
+        else:
+            
             if not prospects.loc[i,'Send Time 1']:
                 prospects.loc[i,'Send Time 1'] = weekday(now + td(days=1))
                 prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=2))
                 prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=4))
                 prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=7))
                 prospects.loc[i,'Send Time 5'] = weekday(prospects.loc[i,'Send Time 4'] + td(days=10))
-            
-            # Sends email if send time is now
-            if str(now) in prospects.loc[i].array:
-                prospects.loc[i,'Send ID 1'] = send_mail(prospects.loc[i],credentials)
-                prospects.loc[i,'Stage'] += 1
-                prospects.loc[i,'Draft ID'] = ''
-            
-            # Creates draft and sets Draft ID
-            if not prospects.loc[i,'Draft ID']:
-                prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
 
+            if prospects.loc[i,'Stage'] == 0:
+                if not prospects.loc[i,'Draft ID']:
+                    prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
+                
+                send_time = 'Send Time 1'
+                send_id = 'Send ID 1'
+        
+            elif prospects.loc[i,'Stage'] == 1:
+                send_time = 'Send Time 2'
+                send_id = 'Send ID 2'
+
+            elif prospects.loc[i,'Stage'] == 2:
+                send_time = 'Send Time 3'
+                send_id = 'Send ID 3'
+
+            elif prospects.loc[i,'Stage'] == 3:
+                send_time = 'Send Time 4'
+                send_id = 'Send ID 4'
+
+            elif prospects.loc[i,'Stage'] == 4:
+                send_time = 'Send Time 5'
+                send_id = 'Send ID 5'
+                
+            else:
+                prospects.loc[i,'Error'] = 'Stage not valid'
+            
+            if str(now) == prospects.loc[i,send_time]:
+                prospects.loc[i,send_id] = send_mail(prospects.loc[i],credentials)
+                prospects.loc[i,'Stage'] += 1
+                if not prospects.loc[i,'Stage'] == 5:
+                    prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
+                else:
+                    prospects.loc[i,'Draft ID'] = None
+                    prospects.loc[i,'End Date'] = now.date()
+                    prospects.loc[i,'End Reason'] = 'Complete'
+                    
+    
     set_with_dataframe(sheet, prospects)
 
