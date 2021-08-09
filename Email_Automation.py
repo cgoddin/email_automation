@@ -9,8 +9,9 @@ from datetime import timedelta as td
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from oauth2client.client import SERVICE_ACCOUNT
 
+import gspread
+from gspread_dataframe import set_with_dataframe
 import pandas as pd
 import pygsheets
 from google.auth.transport.requests import Request
@@ -18,6 +19,8 @@ from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient import discovery
 from googleapiclient.discovery import build
+from oauth2client.client import SERVICE_ACCOUNT
+
 
 def config(config_file):
     try:
@@ -47,7 +50,7 @@ def get_credentials():
             print('Fetching New Tokens...')
             flow = InstalledAppFlow.from_client_secrets_file(
                 CLIENT_SECRET,
-                scopes=['https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/documents.readonly']
+                scopes=['https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/documents.readonly','https://www.googleapis.com/auth/spreadsheets']
             )
 
             flow.run_local_server(port=8080, prompt='consent', authorization_prompt_message='')
@@ -87,8 +90,8 @@ def read_doc(content):
 def get_var(prospect,credentials):
     
     # Compiling callable variables based on pipeline location
-    stage = prospect['Stage']
-
+    stage = int(prospect['Stage'])
+ 
     if stage == 0:
         doc_content = open_doc(DOC_IDS['Email 1'],credentials)
 
@@ -158,6 +161,7 @@ CLIENT_SECRET = CONFIG['ClientSecretFile']
 SERVICE_ACCOUNT = CONFIG['ServiceAccountFile']
 TOKEN = CONFIG['Token']
 DISCOVERY_DOC = CONFIG['DiscoveryDoc']
+SHEET_ID = CONFIG['SheetID']
 DOC_IDS = {
   'Email 1': CONFIG['DocumentIDs'][0],
   'Email 2': CONFIG['DocumentIDs'][1],
@@ -171,10 +175,9 @@ if __name__ == '__main__':
     credentials = get_credentials()
 
     # Gets data from google sheets
-    gc = pygsheets.authorize(service_account_file=SERVICE_ACCOUNT)
-    outreach_and_aquisition = gc.open('Prospects')
-    outreach_sheet = outreach_and_aquisition[0]
-    prospects = pd.DataFrame(outreach_sheet.get_all_records()).infer_objects()
+    client = gspread.Client(credentials)
+    sheet = client.open_by_key(SHEET_ID).get_worksheet(0)
+    prospects = pd.DataFrame(sheet.get_all_records())
 
     now = dt.now().replace(second=0,microsecond=0)
 
@@ -205,5 +208,5 @@ if __name__ == '__main__':
             if not prospects.loc[i,'Draft ID']:
                 prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
 
-    outreach_sheet.set_dataframe(prospects,(1,1))
+    set_with_dataframe(sheet, prospects)
 
