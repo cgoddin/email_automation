@@ -11,15 +11,11 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 import gspread
-from gspread_dataframe import set_with_dataframe
 import pandas as pd
-import pygsheets
 from google.auth.transport.requests import Request
-from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient import discovery
 from googleapiclient.discovery import build
-from oauth2client.client import SERVICE_ACCOUNT
+from gspread_dataframe import set_with_dataframe
 
 
 def config(config_file):
