@@ -1,3 +1,4 @@
+gspread
 pandas
 pygsheets
 pydrive
