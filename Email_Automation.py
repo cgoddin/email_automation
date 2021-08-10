@@ -164,7 +164,6 @@ def send_mail(prospect,credentials):
 CONFIG = config('.config\config.json') 
 FROM_ADR = CONFIG['FromAddress']
 CLIENT_SECRET = CONFIG['ClientSecretFile']
-SERVICE_ACCOUNT = CONFIG['ServiceAccountFile']
 TOKEN = CONFIG['Token']
 DISCOVERY_DOC = CONFIG['DiscoveryDoc']
 SHEET_ID = CONFIG['SheetID']
