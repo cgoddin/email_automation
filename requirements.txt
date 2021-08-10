@@ -1,7 +1,6 @@
 gspread
 gspread_dataframe
 pandas
-pydrive
 google.auth.transport.requests
 google_auth_oauthlib.flow
 googleapiclient.discovery
