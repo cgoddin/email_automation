@@ -19,14 +19,10 @@ from gspread_dataframe import set_with_dataframe
 
 
 def config(config_file):
-    try:
-        path = Path(config_file)
-        with open(path,'r') as f:
-            config = json.load(f)
-        return config
-        
-    except:
-        return None
+    path = Path(config_file)
+    with open(path,'r') as f:
+        config = json.load(f)
+    return config
 
 def get_credentials():
     credentials = None
@@ -90,26 +86,33 @@ def get_var(prospect,credentials):
  
     if stage == 0:
         doc_content = open_doc(DOC_IDS['Email 1'],credentials)
+        send_time = 'Send Time 1'
+        send_id = 'Send ID 1'
 
     elif stage == 1:
         doc_content = open_doc(DOC_IDS['Email 2'],credentials)
-
+        send_time = 'Send Time 2'
+        send_id = 'Send ID 2'
     elif stage == 2:
         doc_content = open_doc(DOC_IDS['Email 3'],credentials)
-
+        send_time = 'Send Time 3'
+        send_id = 'Send ID 3'
     elif stage == 3:
         doc_content = open_doc(DOC_IDS['Email 4'],credentials)
-
+        send_time = 'Send Time 4'
+        send_id = 'Send ID 4'
     elif stage == 4:
         doc_content = open_doc(DOC_IDS['Email 5'],credentials) 
-    
+        send_time = 'Send Time 5'
+        send_id = 'Send ID 5'
+
     subject = read_doc(doc_content)[0]
     body = read_doc(doc_content)[1]
 
     subject = subject.format(contact=prospect['Contact'])
     body = body.format(contact=prospect['Contact'],business=prospect['Business'],personalization=prospect['Personalization'])
 
-    return subject,body
+    return subject,body,send_time,send_id
 
 def create_draft(prospect,credentials):
 
@@ -125,12 +128,16 @@ def create_draft(prospect,credentials):
 
     gmail_service = build('gmail', 'v1', credentials=credentials)
 
-    draft = gmail_service.users().drafts().create(
-        userId='me', 
-        body= {'message': {'raw':raw_string }}
-    ).execute()
+    try:
+        draft = gmail_service.users().drafts().create(
+            userId='me', 
+            body= {'message': {'raw':raw_string }}
+        ).execute()
 
-    return draft['id']
+        return draft['id']
+    
+    except:
+        return 'Error creating draft'
 
 def weekday(datetime):    
     weekend = [5,6]
@@ -140,16 +147,19 @@ def weekday(datetime):
 
 def send_mail(prospect,credentials):
     gmail_service = build('gmail', 'v1', credentials=credentials)
+    try:
+        draft = gmail_service.users().drafts().get(
+            userId='me',
+            id=prospect['Draft ID']).execute()
+        send = gmail_service.users().drafts().send(
+            userId='me', 
+            body= draft
+        ).execute()
 
-    draft = gmail_service.users().drafts().get(
-        userId='me',
-        id=prospect['Draft ID']).execute()
-    send = gmail_service.users().drafts().send(
-        userId='me', 
-        body= draft
-    ).execute()
+        return send['id']
 
-    return send['id']
+    except:
+        return 'Error sending draft'
 
 CONFIG = config('.config\config.json') 
 FROM_ADR = CONFIG['FromAddress']
@@ -182,54 +192,27 @@ if __name__ == '__main__':
         
         if prospects.loc[i,'Stage'] == '':
                 prospects.loc[i,'Stage'] = 0
-
-        if prospects.loc[i,'Stage'] == 5:
-            pass
-
-        else:
-            
-            if not prospects.loc[i,'Send Time 1']:
                 prospects.loc[i,'Send Time 1'] = weekday(now + td(days=1))
                 prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=2))
                 prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=4))
                 prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=7))
                 prospects.loc[i,'Send Time 5'] = weekday(prospects.loc[i,'Send Time 4'] + td(days=10))
-
-            if prospects.loc[i,'Stage'] == 0:
-                if not prospects.loc[i,'Draft ID']:
-                    prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
                 
-                send_time = 'Send Time 1'
-                send_id = 'Send ID 1'
+                prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
         
-            elif prospects.loc[i,'Stage'] == 1:
-                send_time = 'Send Time 2'
-                send_id = 'Send ID 2'
-
-            elif prospects.loc[i,'Stage'] == 2:
-                send_time = 'Send Time 3'
-                send_id = 'Send ID 3'
-
-            elif prospects.loc[i,'Stage'] == 3:
-                send_time = 'Send Time 4'
-                send_id = 'Send ID 4'
-
-            elif prospects.loc[i,'Stage'] == 4:
-                send_time = 'Send Time 5'
-                send_id = 'Send ID 5'
-                
-            else:
-                prospects.loc[i,'Error'] = 'Stage not valid'
+        if not prospects.loc[i,'Stage'] == 5:
+            send_time = get_var(prospects.loc[i],credentials)[2]
+            send_id = get_var(prospects.loc[i],credentials)[3]
             
             if str(now) == prospects.loc[i,send_time]:
-                prospects.loc[i,send_id] = send_mail(prospects.loc[i],credentials)
-                prospects.loc[i,'Stage'] += 1
-                if not prospects.loc[i,'Stage'] == 5:
-                    prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
-                else:
-                    prospects.loc[i,'Draft ID'] = None
-                    prospects.loc[i,'End Date'] = now.date()
-                    prospects.loc[i,'End Reason'] = 'Complete'
+                    prospects.loc[i,send_id] = send_mail(prospects.loc[i],credentials)
+                    prospects.loc[i,'Stage'] += 1
+                    if not prospects.loc[i,'Stage'] == 5:
+                        prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
+                    else:
+                        prospects.loc[i,'Draft ID'] = None
+                        prospects.loc[i,'End Date'] = now.date()
+                        prospects.loc[i,'End Reason'] = 'Complete'
                     
     
     set_with_dataframe(sheet, prospects)
