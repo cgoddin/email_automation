@@ -160,8 +160,8 @@ def send_mail(prospect,credentials):
 
     except:
         return 'Error sending draft'
-    
-if __name__ == '__main__':
+
+def main():
     CONFIG = config('.config\config.json') 
     FROM_ADR = CONFIG['FromAddress']
     CLIENT_SECRET = CONFIG['ClientSecretFile']
@@ -215,3 +215,5 @@ if __name__ == '__main__':
     
     set_with_dataframe(sheet, prospects)
 
+if __name__ == '__main__':
+    main()
