@@ -161,20 +161,21 @@ def send_mail(prospect,credentials):
     except:
         return 'Error sending draft'
 
+CONFIG = config('.config\config.json') 
+FROM_ADR = CONFIG['FromAddress']
+CLIENT_SECRET = CONFIG['ClientSecretFile']
+TOKEN = CONFIG['Token']
+DISCOVERY_DOC = CONFIG['DiscoveryDoc']
+SHEET_ID = CONFIG['SheetID']
+DOC_IDS = {
+'Email 1': CONFIG['DocumentIDs'][0],
+'Email 2': CONFIG['DocumentIDs'][1],
+'Email 3': CONFIG['DocumentIDs'][2],
+'Email 4': CONFIG['DocumentIDs'][3],
+'Email 5': CONFIG['DocumentIDs'][4],
+}
+
 def main():
-    CONFIG = config('.config\config.json') 
-    FROM_ADR = CONFIG['FromAddress']
-    CLIENT_SECRET = CONFIG['ClientSecretFile']
-    TOKEN = CONFIG['Token']
-    DISCOVERY_DOC = CONFIG['DiscoveryDoc']
-    SHEET_ID = CONFIG['SheetID']
-    DOC_IDS = {
-    'Email 1': CONFIG['DocumentIDs'][0],
-    'Email 2': CONFIG['DocumentIDs'][1],
-    'Email 3': CONFIG['DocumentIDs'][2],
-    'Email 4': CONFIG['DocumentIDs'][3],
-    'Email 5': CONFIG['DocumentIDs'][4],
-    }
     
     # Creates Google API Services w/ credentials
     credentials = get_credentials()
@@ -214,6 +215,10 @@ def main():
                         prospects.loc[i,'End Reason'] = 'Complete'             
     
     set_with_dataframe(sheet, prospects)
+
+def test(request):
+    main()
+    return "Email Automation has run successfully"
 
 if __name__ == '__main__':
     main()
