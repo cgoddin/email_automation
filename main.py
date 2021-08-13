@@ -184,7 +184,14 @@ def main():
     client = gspread.Client(credentials)
     sheet = client.open_by_key(SHEET_ID).get_worksheet(0)
     prospects = pd.DataFrame(sheet.get_all_records())
-
+    dtype = {
+        'Send Time 1': 'datetime64',
+        'Send Time 2': 'datetime64',
+        'Send Time 3': 'datetime64',
+        'Send Time 4': 'datetime64',
+        'Send Time 5': 'datetime64',
+    }
+    prospects = prospects.astype(dtype)
 
     now = dt.now().replace(second=0,microsecond=0)
 
@@ -192,7 +199,7 @@ def main():
         
         if prospects.loc[i,'Stage'] == '':
                 prospects.loc[i,'Stage'] = 0
-                prospects.loc[i,'Send Time 1'] = weekday(now + td(days=1))
+                prospects.loc[i,'Send Time 1'] = weekday(now)
                 prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=2))
                 prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=4))
                 prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=7))
@@ -204,21 +211,16 @@ def main():
             send_time = get_var(prospects.loc[i],credentials)[2]
             send_id = get_var(prospects.loc[i],credentials)[3]
             
-            if str(now) == prospects.loc[i,send_time]:
+            if prospects.loc[i,send_time] <= now:
                     prospects.loc[i,send_id] = send_mail(prospects.loc[i],credentials)
                     prospects.loc[i,'Stage'] += 1
                     if not prospects.loc[i,'Stage'] == 5:
                         prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
                     else:
-                        prospects.loc[i,'Draft ID'] = None
+                        prospects.loc[i,'Draft ID'] = '--------------------'
                         prospects.loc[i,'End Date'] = now.date()
                         prospects.loc[i,'End Reason'] = 'Complete'             
     
     set_with_dataframe(sheet, prospects)
 
-def test(request):
-    main()
-    return "Email Automation has run successfully"
-
-if __name__ == '__main__':
-    main()
+main()
