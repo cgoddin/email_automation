@@ -1,0 +1,13 @@
+{
+    "FromAddress": "yourname@example.com",
+    "ClientSecretFile": ".secrets/client_secrets.json",
+    "Token": ".secrets/token.pickle",
+    "DiscoveryDoc": "https://docs.googleapis.com/$discovery/rest?version=v1",
+    "SheetID": "ENTER SHEET ID HERE",
+    "DocumentIDs": [
+        "ENTER DOC ID 1",
+        "ENTER DOC ID 2",
+        "ENTER DOC ID 3",
+        "ENTER DOC ID 4",
+        "ENTER DOC ID 5"],
+}
