@@ -1,5 +1,5 @@
 gspread
 gspread_dataframe
 pandas
-google-api-python-client
-
+pygsheets
+pydrive
