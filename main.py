@@ -174,6 +174,12 @@ DOC_IDS = {
 'Email 4': CONFIG['DocumentIDs'][3],
 'Email 5': CONFIG['DocumentIDs'][4],
 }
+TIME_DELTAS = {
+'td1': CONFIG['TimeDeltas'][0],
+'td2': CONFIG['TimeDeltas'][1],
+'td3': CONFIG['TimeDeltas'][2],
+'td4': CONFIG['TimeDeltas'][3],
+}
 
 def main():
     
@@ -200,10 +206,10 @@ def main():
         if prospects.loc[i,'Stage'] == '':
                 prospects.loc[i,'Stage'] = 0
                 prospects.loc[i,'Send Time 1'] = weekday(now)
-                prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=2))
-                prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=4))
-                prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=7))
-                prospects.loc[i,'Send Time 5'] = weekday(prospects.loc[i,'Send Time 4'] + td(days=10))
+                prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=TIME_DELTAS['td1']))
+                prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=TIME_DELTAS['td2']))
+                prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=TIME_DELTAS['td3']))
+                prospects.loc[i,'Send Time 5'] = weekday(prospects.loc[i,'Send Time 4'] + td(days=TIME_DELTAS['td4']))
                 
                 prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
         

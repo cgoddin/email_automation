@@ -10,4 +10,9 @@
         "ENTER DOC ID 3",
         "ENTER DOC ID 4",
         "ENTER DOC ID 5"],
+    "TimeDeltas": [
+        "ENTER Time Delta 1",
+        "ENTER Time Delta 2",
+        "ENTER Time Delta 3",
+        "ENTER Time Delta 4"]
 }
