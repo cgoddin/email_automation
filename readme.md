@@ -2,7 +2,7 @@
 This is a program to automate my email campaigns for marketing my services.  It is based on Google Docs, and Google Email.
 
 ## Status
-Version 1 Depolyed. Read me still in progress
+Version 1 Depolyed.
 
 ## Motivation
 I created this project to maximize my prospecting efforts for my social media marketing agency, Zyst, and refine my skills as a developer. By automating the process, I can send more emails, raise my response rate, and focus on more important matters.
