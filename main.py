@@ -161,7 +161,7 @@ def send_mail(prospect,credentials):
     except:
         return 'Error sending draft'
 
-CONFIG = config('.config\config.json') 
+CONFIG = config('.config/config.json') 
 FROM_ADR = CONFIG['FromAddress']
 CLIENT_SECRET = CONFIG['ClientSecretFile']
 TOKEN = CONFIG['Token']
