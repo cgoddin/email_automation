@@ -24,6 +24,7 @@ Email
 ## Features
 
 - Automatically sends a 5 email sequence
+- Does not send on weekends
 - Customizable templates
 - Editable time delta between emails
 - Email personalization
@@ -64,7 +65,11 @@ Do the following steps to get your own email campgain up and running on your own
 
     >Put JSON file in folder as 'client_secrets.json'
 
-6.  Create templates
+6.  Copy Google Workspace documents
+    >Open Google Sheets template https://docs.google.com/spreadsheets/d/1Mw7FLVJM3l0nSrsFttbrtYMm0BZPt2jti77Iv1WC4Yk/edit?usp=sharing
+
+    >Make a copy
+    
     >Open Google Doc template https://docs.google.com/document/d/1HJbk2Altw-W00NATCz9g7OU0Ck0ZiUFEpW-SfLIo94U/edit?usp=sharing
 
     >Make 5 copies
@@ -84,7 +89,7 @@ Do the following steps to get your own email campgain up and running on your own
 10. Click 'CREATE FUNCTION'
 
 11. Configure settings
-    >Name function (eg. 'Email Automation')
+    >Name function (eg. 'email_automation')
 
     >Select region (eg. 'us-east1')
 
@@ -106,6 +111,28 @@ Do the following steps to get your own email campgain up and running on your own
     >Upload Zip and create bucket to store file
 
     > Click 'DEPLOY'
+
+13. Using the GCP search bar, open 'Cloud Scheduler'
+
+14. Click 'CREATE JOB'
+
+15. Define the schedule
+    >Name job (eg. 'email_automation')
+
+    >Write description (eg. 'Runs email automation')
+
+    >Choose frequency (eg. weekdays at 8:15 AM: '15 8 * * 1-5')
+
+    >Choose timezone (eg. 'Eastern Standard Time')
+
+    >Click 'CONTINUE'
+
+16. Configure the execution
+    >Target type: 'HTTP'
+
+    >URL: get HTTP trigger from Cloud Funtion
+
+    >Click 'CREATE'
 
 ## Dependencies Used
 - gspread
