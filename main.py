@@ -17,7 +17,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from gspread_dataframe import set_with_dataframe
 
-
 def config(config_file):
     path = Path(config_file)
     with open(path,'r') as f:
@@ -54,11 +53,21 @@ def get_credentials():
                 pickle.dump(credentials, f)
     return credentials
 
+doc_cache = dict()
+
 def open_doc(doc_id,credentials):
-    docs_service = build('docs', 'v1', discoveryServiceUrl=DISCOVERY_DOC, credentials=credentials)
-    # Gives service account access to doc
-    doc = docs_service.documents().get(documentId=doc_id).execute()
-    doc_content = doc.get('body').get('content')
+    doc_content = None
+
+    if doc_id in doc_cache:
+        doc_content = doc_cache[doc_id]
+
+    if doc_content is None:
+        docs_service = build('docs', 'v1', discoveryServiceUrl=DISCOVERY_DOC, credentials=credentials)
+        # Gives service account access to doc
+        doc = docs_service.documents().get(documentId=doc_id).execute()
+        doc_content = doc.get('body').get('content')
+        doc_cache[doc_id] = doc_content
+
     return doc_content
 
 def read_doc(content):
@@ -114,10 +123,7 @@ def get_var(prospect,credentials):
 
     return subject,body,send_time,send_id
 
-def create_draft(prospect,credentials):
-
-    subject = get_var(prospect,credentials)[0]
-    body = get_var(prospect,credentials)[1]
+def create_draft(prospect,credentials,subject,body):
 
     message = MIMEMultipart()
     message['from'] = FROM_ADR
@@ -186,7 +192,7 @@ def main():
     # Creates Google API Services w/ credentials
     credentials = get_credentials()
 
-    # Gets data from google sheets
+    # Gets data from Google Sheets
     client = gspread.Client(credentials)
     sheet = client.open_by_key(SHEET_ID).get_worksheet(0)
     prospects = pd.DataFrame(sheet.get_all_records())
@@ -203,29 +209,32 @@ def main():
 
     for i in prospects.index:
         
-        if prospects.loc[i,'Stage'] == '':
-                prospects.loc[i,'Stage'] = 0
-                prospects.loc[i,'Send Time 1'] = weekday(now)
-                prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=TIME_DELTAS['td1']))
-                prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=TIME_DELTAS['td2']))
-                prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=TIME_DELTAS['td3']))
-                prospects.loc[i,'Send Time 5'] = weekday(prospects.loc[i,'Send Time 4'] + td(days=TIME_DELTAS['td4']))
-                
-                prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
-        
-        if not prospects.loc[i,'Stage'] == 5:
-            send_time = get_var(prospects.loc[i],credentials)[2]
-            send_id = get_var(prospects.loc[i],credentials)[3]
+        if prospects.loc[i,'Business'] != '' and prospects.loc[i,'Contact'] != '' and prospects.loc[i,'Email'] != '' and prospects.loc[i,'Personalization'] != '':
+            if prospects.loc[i,'Stage'] == '':
+                    prospects.loc[i,'Stage'] = 0
+                    prospects.loc[i,'Send Time 1'] = weekday(now)
+                    prospects.loc[i,'Send Time 2'] = weekday(prospects.loc[i,'Send Time 1'] + td(days=TIME_DELTAS['td1']))
+                    prospects.loc[i,'Send Time 3'] = weekday(prospects.loc[i,'Send Time 2'] + td(days=TIME_DELTAS['td2']))
+                    prospects.loc[i,'Send Time 4'] = weekday(prospects.loc[i,'Send Time 3'] + td(days=TIME_DELTAS['td3']))
+                    prospects.loc[i,'Send Time 5'] = weekday(prospects.loc[i,'Send Time 4'] + td(days=TIME_DELTAS['td4']))
             
-            if prospects.loc[i,send_time] <= now:
-                    prospects.loc[i,send_id] = send_mail(prospects.loc[i],credentials)
-                    prospects.loc[i,'Stage'] += 1
-                    if not prospects.loc[i,'Stage'] == 5:
-                        prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials)
-                    else:
-                        prospects.loc[i,'Draft ID'] = '--------------------'
-                        prospects.loc[i,'End Date'] = now.date()
-                        prospects.loc[i,'End Reason'] = 'Complete'             
+            if prospects.loc[i,'Stage'] != 5 and prospects.loc[i,'End Reason'] == '':
+                
+                subject,body,send_time,send_id = get_var(prospects.loc[i],credentials)
+
+                if prospects.loc[i,'Draft ID'] == '':
+                    prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials,subject,body)
+                
+                if prospects.loc[i,send_time] <= now:
+                        prospects.loc[i,send_id] = send_mail(prospects.loc[i],credentials)
+                        if prospects.loc[i,send_id] != 'Error sending draft':
+                            prospects.loc[i,'Stage'] += 1
+                            if not prospects.loc[i,'Stage'] == 5:
+                                prospects.loc[i,'Draft ID'] = create_draft(prospects.loc[i],credentials,subject,body)
+                            else:
+                                prospects.loc[i,'Draft ID'] = '--------------------'
+                                prospects.loc[i,'End Date'] = now.date()
+                                prospects.loc[i,'End Reason'] = 'Complete'                 
     
     set_with_dataframe(sheet, prospects)
 
@@ -240,3 +249,8 @@ def gcp_func_entry(request):
     main()
     
     return "Processing Completed!"
+
+start = dt.now()
+main()
+stop = dt.now()
+print("Run time: ",start-stop)
